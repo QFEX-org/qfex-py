@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from typing import List
 
 
+# SDK-wide configuration object shared by all QFEX SDK components (meta, order
+# routing, streams). Taker-specific knobs live next to the TakerStrategy usage.
 @dataclass(frozen=True)
 class QFEXConfig:
     is_prod: bool

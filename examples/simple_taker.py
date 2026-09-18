@@ -1,7 +1,9 @@
+import argparse
 import asyncio
 import logging
+import os
 import signal
-import argparse
+from decimal import Decimal
 from typing import Dict, Any
 
 from qfex import QFEXTakerClient, QFEXConfig, TakerStrategy, BBO, Side
@@ -55,8 +57,16 @@ async def main() -> None:
         required=True,
         help="comma-separated symbols, e.g. AAPL-USD,SP500-USD",
     )
-    parser.add_argument("--public-key", required=True, help="qfex public key")
-    parser.add_argument("--secret-key", required=True, help="qfex secret key")
+    parser.add_argument(
+        "--public-key",
+        default="",
+        help="qfex public key (or set QFEX_PUBLIC_KEY env var)",
+    )
+    parser.add_argument(
+        "--secret-key",
+        default="",
+        help="qfex secret key (or set QFEX_SECRET_KEY env var)",
+    )
     parser.add_argument("--log-level", default="INFO", help="logging level")
     args = parser.parse_args()
 
@@ -67,18 +77,23 @@ async def main() -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+    # Environment variables are preferred over CLI argv; argv can leak keys into
+    # shell history and process listings, so env vars are the safer option.
+    public_key = os.environ.get("QFEX_PUBLIC_KEY", args.public_key)
+    secret_key = os.environ.get("QFEX_SECRET_KEY", args.secret_key)
+
     cfg = QFEXConfig(
         is_prod=bool(args.is_prod),
         symbol_list=[s.strip() for s in args.symbols.split(",") if s.strip()],
-        public_key=args.public_key,
-        secret_key=args.secret_key,
+        public_key=public_key,
+        secret_key=secret_key,
         log_level=logging.INFO,  # Passed to config but logic moved to app setup
     )
 
     # build client + strategy
-    client = QFEXTakerClient(cfg, strategy=None)  # type: ignore
+    client = QFEXTakerClient(cfg)
     strat = ExampleTaker(client)
-    client.strategy = strat  # late bind
+    client.set_strategy(strat)  # late bind
 
     # graceful shutdown
     loop = asyncio.get_running_loop()
