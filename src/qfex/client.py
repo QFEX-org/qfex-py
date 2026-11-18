@@ -138,9 +138,8 @@ class QFEXTakerClient:
             },
         }
 
-        await self._enqueue_trade(msg)
-
         try:
+            await self._enqueue_trade(msg)
             return await asyncio.wait_for(fut, timeout=self.cfg.order_update_timeout_s)
         finally:
             self._client_oid_to_fut.pop(client_oid, None)
@@ -491,3 +490,4 @@ class QFEXTakerClient:
             await ws.close()
         except Exception:
             return
+
